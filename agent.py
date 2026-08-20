@@ -1,17 +1,21 @@
-from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
 from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.prebuilt import create_react_agent
 import yfinance as yf
 from duckduckgo_search import DDGS
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 from system_prompt import SYSTEM_PROMPT
 
-# Initialize the local model
-llm = ChatOllama(
-    model="qwen2.5:7b",
+load_dotenv()
+
+# Initialize Groq model
+llm = ChatGroq(
+    model="llama-3.3-70b-versatile",   # Fast + strong model
     temperature=0.2,
-    num_ctx=8192
+    api_key=os.getenv("GROQ_API_KEY")
 )
 
 # ==================== TOOLS ====================
@@ -163,7 +167,6 @@ tools = [get_stock_info, get_historical_data, search_web, get_financials]
 
 # ==================== AGENT ====================
 
-# Create the ReAct agent (modern LangGraph way)
 agent = create_react_agent(
     model=llm,
     tools=tools,
@@ -174,12 +177,9 @@ def run_agent(user_input: str, chat_history: list = None):
     if chat_history is None:
         chat_history = []
     
-    # Prepare messages
     messages = [{"role": "user", "content": user_input}]
     
-    # Invoke the agent
     result = agent.invoke({"messages": messages})
     
-    # Extract the final answer
     final_message = result["messages"][-1]
     return final_message.content
